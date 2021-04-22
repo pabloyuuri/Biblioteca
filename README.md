@@ -1,2 +1,2 @@
 # Biblioteca
-Este é um sistema de controle de empréstimos, devoluções e cadastros de livros, como também cadastros de leitores.
+Este é um sistema de controle de empréstimos, devoluções e cadastro de livros, como também cadastro de leitores.
