@@ -1,0 +1,255 @@
+<aura:component implements="force:appHostable" controller="RegistroEmprestimoLivroController" access="global">
+  <!-- Consultar o Leitor e o Livro -->
+  <aura:attribute name="leitorSearch" type="String" />
+  <aura:attribute name="livroSearch" type="String" />
+  <!-- Listar os leitores e o livros -->
+  <aura:attribute name="leitoresResult" type="List"/>
+  <aura:attribute name="livrosResult" type="List"/> 
+  <!-- Listar as pendências do leitor -->
+  <aura:attribute name="pendencias" type="List"/>
+  <!-- pegar o id do Leitor e id do Livro-->
+  <aura:attribute name="leitorId" type="Id"/>
+  <aura:attribute name="livroId" type="Id" />
+
+  <aura:attribute name="loading" type="Boolean" default="false" />
+
+  <aura:attribute name="tipo" type="String" />
+
+  <!-- Mensagem para as consultas realizadas retornarem vazias -->
+  <aura:attribute name="messageLivro" type="String" />
+  <aura:attribute name="messageLeitor" type="String" />
+  <aura:attribute name="messagePendencias" type="String" />
+
+  <!--EVENTO PERSONALIZADO, para atualizar tabela do RegistroPedido no componente pai - biblioteca -->
+  <aura:dependency resource="c:BibliotecaAcaoConcluida" type="EVENT" />
+  <aura:registerEvent type="c:BibliotecaAcaoConcluida" name="finish" />
+
+
+
+
+
+  <lightning:card class="card"> 
+
+    <aura:set attribute="title">
+      <aura:if isTrue="{!v.tipo == '1'}">
+        <h1 class="title">Registro de Empréstimo</h1>
+      </aura:if>
+      <aura:if isTrue="{!v.tipo == '2'}">
+        <h1 class="title">Registro de Devolução</h1>
+      </aura:if>
+      
+    </aura:set>
+
+
+    <aura:set attribute="body">
+
+
+    <!-- SPINNER-->
+    <aura:if isTrue="{!v.loading}">
+      <lightning:spinner />
+    </aura:if>
+
+
+
+
+
+    <!-- CONSULTAR    O   NOME     DO        LEITOR   - RETORNA UMA LISTA DOS LEITORES DA BLIB. -->
+      <!-- se o id for igual a null, então mostre o input-button type-search  -->
+    <aura:if isTrue="{!v.leitorId == null}">
+      <!-- quando o ENTER for pressionado - evento, irá disparar a function do controller.-->
+      <span onkeypress="{!c.handleSearchLeitor}">
+        <!-- a variável leitorSearch será enviada para o método do apex, parâmetro:value -->
+        <lightning:input type="search" label="Nome do Leitor" name="NomeLeitor" value="{!v.leitorSearch}"/>
+      </span>
+      <!-- vai listar na tela os nomes dos leitores que o usuário colocou(value) (nome ou cpf) -->
+      <ul class="slds-m-vertical--medium">
+        <!-- items é uma lista -->
+        <aura:if isTrue="{!v.messageLeitor}">
+          <p>{!v.messageLeitor}</p>
+        </aura:if>
+        <aura:iteration items="{!v.leitoresResult}" var="leitor">
+
+         <!-- pra cada item populado será adicionado um link de selecionar, 
+              e esse link irá pegar o valor do id do leitor que está armazenado na 
+            variável local do aura:iteration-->
+          <li style="border: 1px solid black;padding: 5px;margin: 5px 0px;">
+            <ul>
+              <li> 
+                <b>Nome: </b> {!leitor.NomeCompleto__c}
+              </li>
+              <li>
+                <b>RG: </b> {!leitor.RG__c}
+              </li>
+              <li>
+                <b>Idade: </b> {!leitor.Idade__c}
+              </li>
+              <li>
+                <a href="javascript:void(0)" data-id="{!leitor.Id}" onclick="{!c.setLeitorId}">Selecionar</a>
+              </li>
+            </ul>
+          </li>
+        </aura:iteration>
+      </ul>
+    </aura:if>
+
+
+
+    
+
+
+
+
+    <!-- TIPO DE REGISTRO -->
+    <!-- Se o Id de leitor for diferente de null, mostre o tipo de Registro, se é empréstimo ou devolução-->
+    <aura:if isTrue="{!v.leitorId != null}">
+
+      <aura:if isTrue="{!v.loading}">
+        <lightning:spinner />
+      </aura:if>
+
+      <!-- definindo o tipo de registro.-->
+      <lightning:select label="Tipo do registro" value="{!v.tipo}" disabled="true">
+          <option value="1">Empréstimo</option>
+          <option value="2">Devolução</option>
+      </lightning:select> <!-- options="{!v.tipos}"-->
+
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      <!--  E    M     P        R       É       S        T     I        M          O -->
+      <!-- Então, se for Empréstimo(1) -->
+      <aura:if isTrue="{!v.tipo == '1'}">
+        <!-- input para pesquisar o nome do livro, que o leitor quer ler,
+        ao pressionar enter, irá disparar uma chamada para pesquisar no banco de dados o 
+        livro que o leitor quer e ver se tem ou se está disponível-indisponível  -->
+        <span onkeypress="{!c.handleSearchLivro}">
+          <!-- digitar o nome do livro no input-search, irá enviar o value que está armazenado na
+          variável livroSearch para o parâmetro do método da classe do Apex, será enviado
+          quando o usuário apertar a tecla ENTER e disparar a chamada ao servidor. -->
+          <lightning:input type="search" label="Nome do livro" name="livro" value="{!v.livroSearch}"/>
+        </span>
+    
+        <ul class="slds-m-vertical--medium">
+          <!-- Populando tela com os livros disponíveis-->
+          <!-- para cada nome do livro, código e quant.disponiv. irá mostrar um link de selecionar
+          que pega o valor o item selecionado.-->
+          <aura:if isTrue="{!v.messageLivro}">
+            <p>{!v.messageLivro}</p>
+          </aura:if>
+          
+          
+          <aura:iteration items="{!v.livrosResult}" var="livro">
+            <li style="border: 1px solid black;padding: 5px;margin: 5px 0px;"> 
+              <ul>
+                <li>
+                  <b style="font-size: medium; color: green">{!livro.Titulo__c}</b>
+                </li>
+                <li>
+                  <b>Código:</b> {!livro.Codigo__c}
+                </li>
+                <!-- FÓRMULA QuantidadeDisponivel__c > 0 -->
+                <aura:if isTrue="{!livro.Disponivel__c}"> 
+                <!-- a variável local pega os livros disponiveis e irá mostrar somente os livros 
+                disponíveis da biblioteca. o campo Disponível é um campo formula -> se  QuantidadeDisponivel__c > 0 -->
+                <li><b>Quantidade disponível: </b> {!livro.QuantidadeDisponivel__c}</li>
+                
+                <li>
+                <!-- o data-set irá pegar o livro id que está armazenado na variável local do aura:iteration --> 
+                  <a href="javascript:void(0)" data-id="{!livro.Id}" onclick="{!c.setLivroId}">Selecionar</a>
+                </li>
+                
+                <aura:set attribute="else">
+                    <li>
+                      <b style="color:red">Indisponível</b>  
+                    </li>
+                </aura:set>
+              </aura:if>
+              
+              </ul>
+            </li>
+          </aura:iteration>
+        
+        </ul>
+      </aura:if>
+
+
+
+
+
+      <!-- D      E             V       O       L      U           Ç           Ã        O     -->
+      <aura:if isTrue="{!v.tipo == '2'}">
+
+        <aura:if isTrue="{!v.loading}">
+          <lightning:spinner />
+        </aura:if>
+        
+
+        <ul class="slds-has-dividers_bottom-space slds-m-vertical--medium">
+
+          <aura:if isTrue="{!v.messagePendencias}">
+            <p>{!v.messagePendencias}</p>
+          </aura:if>
+          
+          <!-- a variável-list-array pendencias recebe o return do método da classe do apex -->
+          <aura:iteration items="{!v.pendencias}" var="pendencia">
+            <li class="slds-item">
+                <ul>
+                    <!-- pendencias é a lista do registro de pedido-->
+                    <!-- com a variável local, irá acessar o titulo do livro através do rel.mestre-detalhe
+                    do objeto livro com o objeto de detalhe RegistroPedido -->
+                    <li class="slds-item"><b>Título: </b> {!pendencia.Livro__r.Titulo__c}</li>
+                    <li class="slds-item"><b>Autor: </b> {!pendencia.Livro__r.Autor__c}</li>
+                    <li class="slds-item"><b>Código: </b> {!pendencia.Livro__r.Codigo__c}</li>
+                    <li class="slds-item">
+                      <b>Data empréstimo: </b>
+                      <!-- data do registro de pedido que foi realizado formatada-->
+                      <lightning:formattedDateTime value="{!pendencia.DataEmprestimo__c}" year="numeric" month="numeric" day="numeric" hour="2-digit"
+                      minute="2-digit" timeZoneName="short" hour12="false"/>
+
+                    </li>
+                    <li>
+                      <b>Duração empréstimo: </b> {!pendencia.DuracaoEmprestimo__c}
+                    </li>
+                    <li class="slds-m-vertical--small slds-text-align--center">
+                      <!-- pegando o id da pendencia -->
+                      <!-- depois realizando a baixa-->
+                      <aura:if isTrue="{!pendencia.DataDevolucao__c}">
+                        <button disabled="true" class="slds-button slds-button_neutral">Entregue</button>
+                        <aura:set attribute="else">
+                          <a class="slds-button slds-button_neutral" href="javascript:void(0)" data-id="{!pendencia.Id}" onclick="{!c.handleBaixa}">
+                            Dar baixa
+                          </a>
+                        </aura:set>
+                      </aura:if>
+                    </li>
+                </ul>
+            </li>
+          </aura:iteration>
+        </ul>  
+        
+        
+        
+
+      </aura:if>
+
+    </aura:if>
+      
+      
+   </aura:set>
+
+
+    <aura:set attribute="footer">
+
+      
+    </aura:set>
+  </lightning:card>
+</aura:component>

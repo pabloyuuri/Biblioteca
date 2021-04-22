@@ -1,0 +1,35 @@
+<aura:component controller="CadastroLivroController" implements="force:appHostable,flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,forceCommunity:availableForAllPageTypes,force:lightningQuickAction" access="global">
+  <aura:attribute name="livro" type="Livro__c" 
+  default="{'sObjectType': 'Livro__c', 'Titulo__c': '', 'Autor__c': '', 'Codigo__c': '', 'Quantidade__c' :'1'}"/>
+  <!-- SPINNER -->
+  <aura:attribute name="loading" type="Boolean" default="false" />
+
+  <!-- EVENTO PERSONALIZADO-->
+  <aura:dependency resource="c:BibliotecaAcaoConcluida" type="EVENT" />
+  <aura:registerEvent type="c:BibliotecaAcaoConcluida" name="finish" />
+  
+
+  <lightning:card>
+    <aura:set attribute="title">
+      <h1 class="titulo">Cadastrar um novo livro</h1>
+    </aura:set>
+    
+    <!-- SPINNER -->
+    <aura:if isTrue="{!v.loading}">
+      <lightning:spinner alternativeText="Loading" />
+    </aura:if>
+    <!-- CAMPOS-->
+    <lightning:input type="text" label="Titulo" name="Titulo" value="{!v.livro.Titulo__c}"/>
+    <lightning:input type="text" label="Autor" name="Autor" value="{!v.livro.Autor__c}"/>
+    <lightning:input type="text" label="Codigo" name="Codigo" value="{!v.livro.Codigo__c}"/>
+    <lightning:input type="number" label="Quantidade" name="Quantidade" value="{!v.livro.Quantidade__c}" />
+    
+    
+    <!---BUTTON -->
+    <aura:set attribute="footer">
+      <lightning:button class="button" variant="brand" label="Salvar" onclick="{!c.novoLivro}" />
+    </aura:set>
+
+
+  </lightning:card>
+</aura:component>

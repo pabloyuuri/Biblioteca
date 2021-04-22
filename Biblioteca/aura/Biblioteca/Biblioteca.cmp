@@ -1,0 +1,335 @@
+<aura:component controller="BibliotecaController" implements="force:appHostable">
+  <aura:handler name="init" value="{!this}" action="{!c.init}" />
+  <!-- Handler para evento personalizado -->
+  <aura:handler name="finish" event="c:BibliotecaAcaoConcluida" action="{!c.handleModalUpdateTable}"/>
+
+
+  <aura:attribute name="registroPedidos" type="List"/>
+  <aura:attribute name="livros" type="List"/>
+  <aura:attribute name="leitores" type="List"/>
+
+
+  <!-- Modals View -->
+  <aura:attribute name="modalCadastroLeitor" type="Boolean" default="false" />
+  <aura:attribute name="modalCadastroLivro" type="Boolean" default="false" />
+  <aura:attribute name="modalCadastroEmprestimo" type="Boolean" default="false" />
+  <aura:attribute name="modalCadastroDevolucao" type="Boolean" default="false" />
+
+
+  
+
+
+  <!-- filtros -->
+
+  <aura:attribute name="filtroTitulo" type="String"/>
+  <aura:attribute name="filtroLeitor" type="String"/>
+  <aura:attribute name="filtroStatus" type="String"/>
+
+  <aura:attribute name="loading" type="Boolean" default="false" />
+
+
+	
+  
+  <lightning:card>
+  
+    <aura:set attribute="title">
+          <h1 class="slds-text-heading_medium">Biblioteca</h1>
+    </aura:set>
+      
+    <div class="slds-clearfix">
+      <!-- BOTÕES DE EMPRÉSTIMO E DEVOLUÇÃO A ESQUERDA--> 
+      <div class="slds-float_left">
+        <lightning:buttonGroup>
+          <lightning:button label="Criar empréstimo" onclick="{!c.openCadastroEmprestimo}"></lightning:button>
+          <lightning:button label="Registrar devolução" onclick="{!c.openCadastroDevolucao}"></lightning:button>
+        </lightning:buttonGroup>
+      </div>
+          <!-- BOTÕES DE CADASTRAR LEITOR E LIVRO A ESQUERDA -->
+      <div class="slds-float_right">
+        <lightning:buttonGroup>
+          <lightning:button label="Cadastrar leitor" onclick="{!c.openCadastroLeitor}"></lightning:button>
+          <lightning:button label="Cadastrar livro" onclick="{!c.openCadastroLivro}"></lightning:button>
+        </lightning:buttonGroup>
+      </div>
+    </div>
+      
+      <!--Mostrar uma lista de livros (título e autor), leitor
+          (nome e sobrenome), data de empréstimo e data de
+          devolução (se for o caso)-->
+    <lightning:tabset selectedTabId="1">  
+      <lightning:tab label="Livros emprestados" id="1">
+
+        <!-- FILTROS-->
+        <fieldset style="border: 1px solid #666;padding: 10px;margin-bottom: 10px;" class="slds-form-element slds-form-element_compound">
+          <legend class="slds-text-heading_label">Filtros</legend>  
+          <div class="slds-form-element__control">
+            <div class="slds-form-element__row">
+              <div class="slds-size_1-of-4">
+                <div class="slds-form-element">
+                  <lightning:input type="text" value="{!v.filtroTitulo}" label="Nome do título"/>
+                </div>
+              </div>
+              <div class="slds-size_1-of-4">
+                <div class="slds-form-element">
+                  <lightning:input type="text" value="{!v.filtroLeitor}" label="Nome do leitor"/>
+                </div>
+              </div>
+              <div class="slds-size_1-of-4">
+                <div class="slds-form-element">
+                  <lightning:select value="{!v.filtroStatus}" label="Status">
+                    <option value="">Não filtrar</option>
+                    <option value="1">Emprestados</option>
+                    <option value="2">Devolvidos</option>
+                  </lightning:select>
+                </div>
+              </div>
+
+              <div class="slds-size_1-of-4">
+                <div class="slds-form-element" style="margin-top: 20px;">
+                  <!-- VAI BUSCAR E SETAR NA VARIÁVEL ARRAY-LIST -->
+                  <lightning:buttonIcon iconName="utility:search"  variant="border-filled" alternativeText="Buscar" title="Buscar" onclick="{!c.filtrar}"/>
+                  <lightning:buttonIcon iconName="utility:clear"  variant="border-filled" alternativeText="Limpar" title="Limpar" onclick="{!c.limparFiltro}"/>
+                </div>
+              </div>
+
+            </div>
+          </div>
+          
+        </fieldset>
+
+        <table class="slds-table slds-table_cell-buffer slds-table_bordered">
+
+          <aura:if isTrue="{!v.loading}">
+            <lightning:spinner />
+          </aura:if>
+
+            <thead>
+                <tr class="slds-line-height_reset">
+                    <th class="" scope="col">
+                        <div class="slds-truncate" title="Título">Título</div>
+                    </th>
+                    <th class="" scope="col">
+                        <div class="slds-truncate" title="Autor">Autor</div>
+                    </th>
+                    <th class="" scope="col">
+                        <div class="slds-truncate" title="Leitor">Leitor</div>
+                    </th>
+                    <th class="" scope="col">
+                        <div class="slds-truncate" title="Data de empréstimo">Data de empréstimo</div>
+                    </th>
+                    <th class="" scope="col">
+                        <div class="slds-truncate" title="Data de devolução">Data de devolução</div>
+                    </th>
+                    <th class="" scope="col">
+                      <div class="slds-truncate" title="Duração de empréstimo">Duração de empréstimo</div>
+                    </th>
+                    <th class="" scope="col">
+                      <div class="slds-truncate" title="">Total({!v.registroPedidos.length})</div>
+                    </th>
+                </tr>
+            </thead>
+            
+            <tbody>
+              <aura:iteration items="{!v.registroPedidos}" var="registro">
+                <tr>
+                  <td>
+                    <!-- LINK PARA ACESSAR O REGISTRO DO LIVRO CADASTRADO -->
+                    <a href="{!'/' + registro.Livro__c}" target="_blank">{!registro.Livro__r.Titulo__c}</a>
+                  </td>
+                  <td>
+                    {!registro.Livro__r.Autor__c}
+                  </td>
+                  <td>
+                    <!-- LINK PARA ACESSAR O REGISTRO DO LEITOR CADASTRADO-->
+                    <a href="{!'/' + registro.Leitor__c}" target="_blank">{!registro.Leitor__r.NomeCompleto__c}</a>
+                  </td>
+                  <td>
+                    <lightning:formattedDateTime value="{!registro.DataEmprestimo__c}" year="numeric" month="numeric" day="numeric" hour="2-digit"
+                      minute="2-digit" timeZoneName="short" hour12="false"/>
+                  </td>
+                  <td>
+                    <lightning:formattedDateTime value="{!registro.DataDevolucao__c}" year="numeric" month="numeric" day="numeric" hour="2-digit"
+                      minute="2-digit" timeZoneName="short" hour12="false"/>
+                  </td>
+                  <td>
+                    {!registro.DuracaoEmprestimo__c} dias
+                  </td>
+                  <td>
+                    <aura:if isTrue="{!registro.DataDevolucao__c}">
+                        <b>Devolvido</b>
+                        <aura:set attribute="else">
+                          <a href="javascript:void(0)" data-id="{!registro.Id}" onclick="{!c.baixaLivro}">Dar baixa</a>
+                        </aura:set>
+                    </aura:if>
+                  </td>
+                </tr>
+              </aura:iteration>
+            </tbody>
+        </table>
+      </lightning:tab>
+
+      <lightning:tab label="Livros" id="2">
+        <table class="slds-table slds-table_cell-buffer slds-table_bordered">
+          <aura:if isTrue="{!v.loading}">
+            <lightning:spinner />
+          </aura:if>
+
+          <thead>
+            <tr class="slds-line-height_reset">
+              <th class="" scope="col">
+                  <div class="slds-truncate" title="Título">Título</div>
+              </th>
+              <th class="" scope="col">
+                  <div class="slds-truncate" title="Autor">Autor</div>
+              </th>
+              <th class="" scope="col">
+                  <div class="slds-truncate" title="Quantidade">Quantidade</div>
+              </th>
+              <th class="" scope="col">
+                  <div class="slds-truncate" title="Quantidade disponível">Quantidade disponível</div>
+              </th>
+              <th class="" scope="col">
+                <div class="slds-truncate" title="Total de empréstimos">Total de empréstimos</div>
+              </th>
+            </tr>
+          </thead>
+            <!-- LISTA CHAMADA COM O AURA:HANDLER INIT -->
+          <tbody>
+            <aura:iteration items="{!v.livros}" var="livro">
+              <tr>
+                <td>
+                    {!livro.Titulo__c}
+                </td>
+                
+                <td>
+                    {!livro.Autor__c}
+                </td>
+                
+                <td>
+                    {!livro.Quantidade__c}
+                </td>
+                <td>
+                  {!livro.QuantidadeDisponivel__c}
+                </td>
+                <td>
+                    {!livro.TotalEmprestimos__c}
+                </td>
+              </tr>
+            </aura:iteration>
+          </tbody>   
+        </table>
+      </lightning:tab>
+
+      <lightning:tab label="Leitores" id="3">
+        <table class="slds-table slds-table_cell-buffer slds-table_bordered">
+          <aura:if isTrue="{!v.loading}">
+            <lightning:spinner />
+          </aura:if>
+          <thead>
+            <tr class="slds-line-height_reset">
+                
+              <th class="" scope="col">
+                <div class="slds-truncate" title="Nome Completo">Nome Completo</div>
+              </th>
+              <th class="" scope="col">
+                <div class="slds-truncate" title="Idade">Idade</div>
+              </th>
+              <th class="" scope="col">
+                <div class="slds-truncate" title="RG">RG</div>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <aura:iteration items="{!v.leitores}" var="leitor">
+              <tr>
+                <td>{!leitor.NomeCompleto__c}</td>
+                <td>{!leitor.Idade__c}</td>
+                <td>{!leitor.RG__c}</td>
+              </tr>
+            </aura:iteration>
+          </tbody>
+        </table>
+      </lightning:tab>
+
+    </lightning:tabset>
+  </lightning:card>
+
+
+
+
+
+    <!-- MODALDS -->
+
+    <!-- Modal Cadastro Leitor -->
+    <aura:if isTrue="{!v.modalCadastroLeitor}">
+
+      <section class="slds-modal slds-fade-in-open">
+        <div class="slds-modal__container">
+          <header class="slds-modal__header">
+            <lightning:buttonIcon class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"  iconName="utility:close" variant="bare" onclick="{! c.handleClickButtonleitor }" alternativeText="FEchar" title="FEchar" />
+            <h2 class="slds-modal__title slds-hyphenate">Cadastro de Leitor</h2>
+          </header>
+          <div class="slds-modal__content slds-p-around_medium">
+            <c:CadastroLeitor />
+          </div>
+        </div>
+      </section>
+      <div class="slds-backdrop slds-backdrop_open"></div>
+
+    </aura:if>
+
+    <!-- Modal Cadastro Livro-->
+    <aura:if isTrue="{!v.modalCadastroLivro}">
+
+      <section class="slds-modal slds-fade-in-open">
+
+        <div class="slds-modal__container">
+          <header class="slds-modal__header">
+            <lightning:buttonIcon class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" iconName="utility:close" variant="bare" onclick="{! c.handleClickButtonLivro }" alternativeText="Fechar" title="Fechar" />
+            <h2 class="slds-modal__title slds-hyphenate">Cadastro de Livro</h2>
+          </header>
+          <div class="slds-modal__content slds-p-around_medium">
+            <c:CadastroLivro />
+          </div>
+        </div>
+      </section>
+      <div class="slds-backdrop slds-backdrop_open"></div>
+
+    </aura:if>
+
+
+    <!-- Modal Cadastro Emprestimo-->
+    <aura:if isTrue="{!v.modalCadastroEmprestimo}">
+      <section class="slds-modal slds-fade-in-open">
+
+        <div class="slds-modal__container">
+          <header class="slds-modal__header">
+            <lightning:buttonIcon class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" iconName="utility:close" variant="bare" onclick="{!c.handleClickButtonEmprestimo }" alternativeText="Fechar" title="Fechar" />
+            <h2 class="slds-modal__title slds-hyphenate">Cadastro de Empréstimo </h2>
+          </header>
+          <div class="slds-modal__content slds-p-around_medium">
+            <c:RegistroEmprestimoLivro tipo="1"/>
+          </div>
+        </div>
+      </section>
+      <div class="slds-backdrop slds-backdrop_open"></div>
+
+    </aura:if>
+
+    <!-- Modal CadastroDevolucao-->
+    <aura:if isTrue="{!v.modalCadastroDevolucao}">
+      <section class="slds-modal slds-fade-in-open">
+        <div class="slds-modal__container">
+          <header class="slds-modal__header">
+            <lightning:buttonIcon class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" iconName="utility:close" variant="bare" onclick="{!c.handleClickButtonDevolucao }" alternativeText="Fechar" title="Fechar" />
+            <h2 class="slds-modal__title slds-hyphenate">Cadastro de Empréstimo </h2>
+          </header>
+          <div class="slds-modal__content slds-p-around_medium">
+            <c:RegistroEmprestimoLivro tipo="2"/>
+          </div>
+        </div>
+      </section>
+      <div class="slds-backdrop slds-backdrop_open"></div>
+    </aura:if>
+
+</aura:component>

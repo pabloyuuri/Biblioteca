@@ -1,0 +1,40 @@
+<aura:component controller="CadastroLeitorController" implements="force:appHostable,flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,forceCommunity:availableForAllPageTypes,force:lightningQuickAction" access="global">
+  <aura:attribute name="leitor" type="Leitor__c" 
+                  default="{'sobjectType': 'Leitor__c', 'Nome__c' :'', 'Sobrenome__c' : '', 'Idade__c' : '', 'RG__c' : '' }"/>
+  
+  <aura:attribute name="loading" type="Boolean" default="false" />
+  
+  <!-- EVENTO PERSONALIZADO-->
+  <aura:dependency resource="c:BibliotecaAcaoConcluida" type="EVENT" />
+  <aura:registerEvent type="c:BibliotecaAcaoConcluida" name="finish" />
+  
+  <lightning:card>
+      
+    
+    <aura:set attribute="title">
+      <h1 class="titulo">Cadastrar novo leitor</h1>
+    </aura:set>
+
+    <!-- SPINNER -->
+    <aura:if isTrue="{!v.loading}">
+      <lightning:spinner alternativeText="Loading" />
+    </aura:if>
+    
+    <!-- FORM - CAMPOS -->
+    <lightning:input type="text" label="Nome" name="Nome" value="{!v.leitor.Nome__c}" />
+    <lightning:input type="text" label="Sobrenome" name="Sobrenome" value="{!v.leitor.Sobrenome__c}" />
+    <lightning:input type="number" label="Idade" name="Idade" value="{!v.leitor.Idade__c}" maxlength="3"/>
+    <lightning:input type="text" label="RG" name="RG" value="{!v.leitor.RG__c}" />
+    
+    
+    <!-- BUTTON -->
+    <aura:set attribute="footer">
+    
+        <lightning:button class="button" variant="brand" label="Salvar" onclick="{!c.novoLeitor}"/>
+
+
+    </aura:set>
+      
+
+  </lightning:card>
+</aura:component>
